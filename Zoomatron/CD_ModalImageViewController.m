@@ -33,7 +33,6 @@
   CGRect imageRect = [self frameForImageSize:imageSize];
 	_imageView = [[UIImageView alloc] initWithFrame:imageRect];
   [_imageView setContentMode:UIViewContentModeScaleAspectFit];
-  [self addTitleToImage];
   [self.imageView setImage:self.selectedImage];
   [self.imageView setUserInteractionEnabled:YES];
   [self.imageView.layer setCornerRadius:7.0];
@@ -44,6 +43,10 @@
   [singleTapAnywhere setNumberOfTapsRequired:1];
   [singleTapAnywhere setNumberOfTouchesRequired:1];
   [self.view addGestureRecognizer:singleTapAnywhere];
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+  [self addTitleToImage];
 }
 
 - (CGRect)frameForImageSize:(CGSize)imageSize {
@@ -64,6 +67,10 @@
     [titleLabel setTextAlignment:NSTextAlignmentCenter];
     [titleLabel setText:self.imageTitle];
     [self.imageView addSubview:titleLabel];
+    [titleLabel setAlpha:0.0];
+    [UIView animateWithDuration:0.2 animations:^{
+      [titleLabel setAlpha:1.0];
+    }];
   }
 }
 
