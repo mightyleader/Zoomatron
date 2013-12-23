@@ -9,6 +9,7 @@
 @import Foundation;
 
 @interface CD_DatasourceObject : NSObject <UITableViewDataSource>
+- (BOOL)persistData;
 - (id)objectAtIndex:(NSInteger)index;
 - (NSInteger)count;
 @end

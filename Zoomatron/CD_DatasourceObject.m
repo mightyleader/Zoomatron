@@ -11,24 +11,43 @@
 #import <QuartzCore/QuartzCore.h>
 
 @interface CD_DatasourceObject ()
-@property (nonatomic, strong, readwrite) NSMutableArray *dataArray;
+@property (nonatomic, strong, readwrite) NSMutableArray *referenceArray;
+@property (nonatomic, strong) NSMutableArray *persistentArray;
+@property (nonatomic, strong) NSData *tempImageData;
 - (void)prepareData;
+- (BOOL)restoreData;
+- (NSString *)pathToArchive;
 @end
 
 @implementation CD_DatasourceObject
 
+#pragma mark - Object lifecycle methods
+
 - (id)init {
   self = [super init];
   if (self) {
-    _dataArray = [[NSMutableArray alloc] init];
+    _referenceArray = [[NSMutableArray alloc] init];
+    _tempImageData = UIImagePNGRepresentation([UIImage imageNamed:@"tempImage"]);
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(persistData) name:UIApplicationWillResignActiveNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(persistData) name:UIApplicationWillTerminateNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(persistData) name:UIApplicationDidEnterBackgroundNotification object:nil];
     [self prepareData];
   }
   return self;
 }
 
+- (void)dealloc {
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+  [self persistData];
+}
+
 #pragma mark - Private data handling
 
 - (void)prepareData {
+  BOOL createPersistentArray = ![self restoreData];
+  if (createPersistentArray) {
+    _persistentArray = [[NSMutableArray alloc] init];
+  }
   NSArray *names = @[@"Macintosh",
                      @"Macintosh Classic",
                      @"Macintosh Color Classic",
@@ -47,24 +66,45 @@
     NSInteger index = [names indexOfObject:name];
     NSString *location = [locations objectAtIndex:index];
     CD_DataItem *item = [[CD_DataItem alloc] initWithTitle:name andURL:[NSURL URLWithString:location]];
-    [self.dataArray addObject:item];
+    [self.referenceArray addObject:item];
+    if (createPersistentArray) {
+      [self.persistentArray addObject:self.tempImageData];
+    }
   }
+}
+
+- (BOOL)restoreData {
+  _persistentArray = [[NSArray arrayWithContentsOfFile:[self pathToArchive]] mutableCopy];
+  return self.persistentArray;
+}
+
+- (NSString *)pathToArchive {
+  NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+  NSString *fullPathToSave = [documentsPath stringByAppendingPathComponent:@"macImages.xml"];
+  return fullPathToSave;
 }
 
 #pragma mark - Public accessors
 
+- (BOOL)persistData {
+  BOOL result;
+  NSString *filePath = [self pathToArchive];
+  result = [self.persistentArray writeToFile:filePath atomically:YES];
+  return YES;
+}
+
 - (id)objectAtIndex:(NSInteger)index {
   id object = nil;
-  if (self.dataArray && self.dataArray.count >= index) {
-    object = [self.dataArray objectAtIndex:index];
+  if (self.referenceArray && self.referenceArray.count >= index) {
+    object = [self.referenceArray objectAtIndex:index];
   }
   return object;
 }
 
 - (NSInteger)count {
   NSInteger count = 0;
-  if (self.dataArray) {
-    count = [self.dataArray count];
+  if (self.referenceArray) {
+    count = [self.referenceArray count];
   }
   return count;
 }
@@ -86,25 +126,30 @@
   [cell.textLabel setText:[dataItem itemName]];
   [cell.textLabel setTextAlignment:NSTextAlignmentRight];
   [cell.textLabel setFont:[UIFont fontWithName:@"AvenirNext-Regular" size:14.0]];
-  [cell.imageView setImage:[UIImage imageNamed:@"tempImage"]];
-  [self downloadImageAtURL:[dataItem itemLocation] withCompletionHandler:^(UIImage *image) {
-    [cell.imageView setContentMode:UIViewContentModeScaleAspectFit];
-    [cell.imageView setImage:image];
-    [cell.imageView.layer setCornerRadius:3.0];
-    [cell.imageView.layer setMasksToBounds:YES];
-  }];
+  NSData *dataForImage = [self.persistentArray objectAtIndex:indexPath.row];
+  UIImage *cellImage = [UIImage imageWithData:dataForImage];
+  [cell.imageView setImage:cellImage];
+  [cell.imageView.layer setCornerRadius:3.0];
+  [cell.imageView.layer setMasksToBounds:YES];
+  if (dataForImage == self.tempImageData) {
+    [self downloadImageAtURL:[dataItem itemLocation] withCompletionHandler:^(NSData *imageData) {
+      [cell.imageView setContentMode:UIViewContentModeScaleAspectFit];
+      [self.persistentArray setObject:imageData atIndexedSubscript:indexPath.row];
+      UIImage *imageToUse = [UIImage imageWithData:imageData];
+      [cell.imageView setImage:imageToUse];
+    }];
+  }
   return cell;
 }
 
 #pragma mark - Private image retreival and processing
-- (void)downloadImageAtURL:(NSURL *)url withCompletionHandler:(void(^)(UIImage*))completion {
+- (void)downloadImageAtURL:(NSURL *)url withCompletionHandler:(void(^)(NSData*))completion {
   NSOperationQueue *downloadQueue = [[NSOperationQueue alloc] init];
   [downloadQueue addOperationWithBlock:^{
     NSData *imageData = [NSData dataWithContentsOfURL:url];
-    UIImage *returnedImage = [UIImage imageWithData:imageData];
     [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-      if (returnedImage) {
-        completion(returnedImage);
+      if (imageData) {
+        completion(imageData);
       }
     }];
   }];
