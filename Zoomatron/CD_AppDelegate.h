@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 Cocoadelica. All rights reserved.
 //
 
-#import <UIKit/UIKit.h>
+@import UIKit;
 
 @interface CD_AppDelegate : UIResponder <UIApplicationDelegate>
 
