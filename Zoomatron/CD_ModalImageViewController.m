@@ -7,7 +7,8 @@
 //
 
 #import "CD_ModalImageViewController.h"
-#import <QuartzCore/QuartzCore.h>
+@import QuartzCore;
+@import AVFoundation;
 
 @interface CD_ModalImageViewController ()
 @property (nonatomic, strong) UIImageView *imageView;
@@ -60,18 +61,32 @@
 
 - (void)addTitleToImage {
   if (self.imageTitle) {
-    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, CGRectGetHeight(self.imageView.frame) - 30, CGRectGetWidth(self.imageView.frame), 30)];
+    UILabel *titleLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, CGRectGetHeight(self.imageView.frame) - 40, CGRectGetWidth(self.imageView.frame), 40)];
     [titleLabel setBackgroundColor:[UIColor colorWithWhite:0.0 alpha:0.7]];
-    [titleLabel setFont:[UIFont fontWithName:@"AvenirNext-Regular" size:12.0]];
+    [titleLabel setFont:[UIFont fontWithName:@"AvenirNext-Regular" size:15.0]];
     [titleLabel setTextColor:[UIColor whiteColor]];
     [titleLabel setTextAlignment:NSTextAlignmentCenter];
     [titleLabel setText:self.imageTitle];
+    UIButton *speechButton = [UIButton buttonWithType:UIButtonTypeCustom];
+    [speechButton setImage:[UIImage imageNamed:@"speechIcon"] forState:UIControlStateNormal];
+    [speechButton setFrame:CGRectMake(CGRectGetWidth(titleLabel.frame) - 40, 0, 40, 40)];
+    [speechButton addTarget:self action:@selector(speakLabel:) forControlEvents:UIControlEventTouchUpInside];
+    [speechButton setBackgroundColor:[UIColor blackColor]];
+    [titleLabel setUserInteractionEnabled:YES];
+    [titleLabel addSubview:speechButton];
     [self.imageView addSubview:titleLabel];
     [titleLabel setAlpha:0.0];
     [UIView animateWithDuration:0.2 animations:^{
       [titleLabel setAlpha:1.0];
     }];
   }
+}
+
+- (void)speakLabel:(id)sender {
+  AVSpeechSynthesizer *speechSynthesizer = [[AVSpeechSynthesizer alloc] init];
+  AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc] initWithString:self.imageTitle];
+  [utterance setRate:0.3];
+  [speechSynthesizer speakUtterance:utterance];
 }
 
 - (void)didReceiveMemoryWarning {

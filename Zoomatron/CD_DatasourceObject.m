@@ -8,7 +8,7 @@
 
 #import "CD_DatasourceObject.h"
 #import "CD_DataItem.h"
-#import <QuartzCore/QuartzCore.h>
+@import QuartzCore;
 
 @interface CD_DatasourceObject ()
 @property (nonatomic, strong, readwrite) NSMutableArray *referenceArray;
