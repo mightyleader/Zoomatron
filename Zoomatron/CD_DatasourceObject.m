@@ -75,7 +75,7 @@
 
 - (BOOL)restoreData {
   _persistentArray = [[NSArray arrayWithContentsOfFile:[self pathToArchive]] mutableCopy];
-  return self.persistentArray;
+  return self.persistentArray != nil;
 }
 
 - (NSString *)pathToArchive {

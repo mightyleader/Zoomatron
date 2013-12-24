@@ -10,10 +10,12 @@
 @import QuartzCore;
 @import AVFoundation;
 
-@interface CD_ModalImageViewController ()
+@interface CD_ModalImageViewController () <UIGestureRecognizerDelegate>
 @property (nonatomic, strong) UIImageView *imageView;
+- (void)dismissMe:(id)gesture;
 - (CGRect)frameForImageSize:(CGSize)imageSize;
 - (void)addTitleToImage;
+-(void)resetTransform;
 @end
 
 @implementation CD_ModalImageViewController
@@ -40,10 +42,17 @@
   [self.imageView.layer setMasksToBounds:YES];
   self.view = self.imageView;
   
-  UITapGestureRecognizer *singleTapAnywhere = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissMe)];
+  UITapGestureRecognizer *singleTapAnywhere = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissMe:)];
   [singleTapAnywhere setNumberOfTapsRequired:1];
   [singleTapAnywhere setNumberOfTouchesRequired:1];
+  [singleTapAnywhere setDelegate:self];
   [self.view addGestureRecognizer:singleTapAnywhere];
+  UIPinchGestureRecognizer *pinchToDismiss = [[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(dismissMe:)];
+  [pinchToDismiss setDelegate:self];
+  [self.view addGestureRecognizer:pinchToDismiss];
+  UIRotationGestureRecognizer *rotateGesture = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(dismissMe:)];
+  [rotateGesture setDelegate:self];
+  //[self.view addGestureRecognizer:rotateGesture];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -93,8 +102,65 @@
   [super didReceiveMemoryWarning];
 }
 
-- (void)dismissMe {
-  [self dismissViewControllerAnimated:YES completion:nil];
+- (void)dismissMe:(id)gesture {
+  if ([gesture isKindOfClass:[UITapGestureRecognizer class]]) {
+    [self dismissViewControllerAnimated:YES completion:nil];
+  }
+  if ([gesture isKindOfClass:[UIPinchGestureRecognizer class]]) {
+    UIPinchGestureRecognizer *pinchGesture = (UIPinchGestureRecognizer *)gesture;
+    switch (pinchGesture.state) {
+      case UIGestureRecognizerStateBegan:
+        [pinchGesture setScale:1.0];
+        break;
+      case UIGestureRecognizerStateCancelled:
+        [self resetTransform];
+        break;
+      case UIGestureRecognizerStateChanged:
+        if (pinchGesture.scale < 0.6) {
+          [self dismissViewControllerAnimated:YES completion:nil];
+        }
+        else {
+          self.view.transform = CGAffineTransformMakeScale(pinchGesture.scale, pinchGesture.scale);
+        }
+        break;
+      case UIGestureRecognizerStateEnded:
+        if (pinchGesture.scale >= 0.6) {
+          [self resetTransform];
+        }
+        else {
+          [self.view removeGestureRecognizer:gesture];
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  if ([gesture isKindOfClass:[UIRotationGestureRecognizer class]]) {
+    UIRotationGestureRecognizer *rotater = (UIRotationGestureRecognizer *)gesture;
+    switch (rotater.state) {
+      case UIGestureRecognizerStateCancelled:
+        [self resetTransform];
+      case UIGestureRecognizerStateChanged:
+        self.view.transform = CGAffineTransformMakeRotation(rotater.rotation);
+        break;
+      case UIGestureRecognizerStateEnded:
+        [self resetTransform];
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+-(void)resetTransform {
+  [UIView animateWithDuration:0.2
+                        delay:0.0
+       usingSpringWithDamping:0.4
+        initialSpringVelocity:0.4
+                      options:UIViewAnimationOptionCurveEaseIn
+                   animations:^{
+    self.view.transform = CGAffineTransformIdentity;
+  } completion:nil];
 }
 
 #pragma mark - Animated Transition handler
@@ -112,5 +178,15 @@
   [self.customTransition setPresenting:NO];
   return self.customTransition;
 }
+
+#pragma mark - Gesture delegate
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+  if (![gestureRecognizer isKindOfClass:[UITapGestureRecognizer class]] && ![otherGestureRecognizer isKindOfClass:[UITapGestureRecognizer class]]) {
+    return YES;
+  }
+  return NO;
+}
+
 
 @end
