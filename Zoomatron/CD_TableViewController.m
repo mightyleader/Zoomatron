@@ -1,4 +1,4 @@
-//
+  //
 //  CD_TableViewController.m
 //  Zoomatron
 //
@@ -10,7 +10,7 @@
 #import "CD_ModalImageViewController.h"
 
 @interface CD_TableViewController () <UIViewControllerTransitioningDelegate>
-
+@property (nonatomic, strong) UIRefreshControl *refresher;
 @end
 
 @implementation CD_TableViewController
@@ -28,8 +28,12 @@
   [self.tableView setContentInset:UIEdgeInsetsMake(32, 0, 44, 0)];
   [self.tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"Cell"];
   self.dataObject = [[CD_DatasourceObject alloc] init];
+  [self.dataObject setDelegate:self];   
   [self.tableView setDataSource:self.dataObject];
   [self.tableView setSeparatorStyle:UITableViewCellSeparatorStyleNone];
+  self.refresher = [[UIRefreshControl alloc] init];
+  [self.refresher addTarget:self.dataObject action:@selector(reloadData:) forControlEvents:UIControlEventValueChanged];
+  [self.tableView addSubview:self.refresher];
   [self.tableView reloadData];
 }
 
@@ -51,5 +55,10 @@
   [self presentViewController:modalImage animated:YES completion:nil];
 }
 
+#pragma mark - Datasource Delegate
+
+-(void)reloadTableView {
+  [self.tableView reloadData];
+}
 
 @end

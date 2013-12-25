@@ -9,6 +9,6 @@
 @import UIKit;
 #import "CD_DatasourceObject.h"
 
-@interface CD_TableViewController : UITableViewController
+@interface CD_TableViewController : UITableViewController <CD_DatasourceDelegate>
 @property (nonatomic, strong) CD_DatasourceObject *dataObject;
 @end

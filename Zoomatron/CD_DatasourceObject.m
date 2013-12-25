@@ -78,6 +78,20 @@
   return self.persistentArray != nil;
 }
 
+- (void)reloadData:(id)sender {
+  NSInteger count = self.referenceArray.count;
+  for (NSInteger i = 0; i < count; i++) {
+    NSURL *url = [[self.referenceArray objectAtIndex:i] itemLocation];
+    [self downloadImageAtURL:url withCompletionHandler:^(NSData *data) {
+      [self.persistentArray setObject:data atIndexedSubscript:i];
+      [self.delegate reloadTableView];
+    }];
+  }
+  if ([sender isKindOfClass:[UIRefreshControl class]]) {
+    [sender endRefreshing];
+  }
+}
+
 - (NSString *)pathToArchive {
   NSString *documentsPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
   NSString *fullPathToSave = [documentsPath stringByAppendingPathComponent:@"macImages.xml"];
